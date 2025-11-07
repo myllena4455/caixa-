@@ -28,9 +28,10 @@ header h1{margin:0;font-size:18px; display: flex; align-items: center; gap: 8px;
 .left-panel{display:flex;flex-direction:column;gap:12px}
 .card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:12px}
 
-/* Botões Padronizados */
+/* === AJUSTE DE TAMANHO DOS BOTÕES === */
 button {
-    padding: 8px 10px;
+    padding: 12px 20px; /* Aumentado */
+    font-size: 16px; /* Aumentado */
     border-radius: 8px;
     border: 0;
     cursor: pointer;
@@ -39,12 +40,14 @@ button {
     justify-content: center; 
     gap: 6px; 
     font-weight: 500;
-    white-space: nowrap;
+    white-space: nowrap; 
+    transition: background-color 0.2s;
 }
 .btn-primary{background:var(--primary-color);color:var(--black);border:1px solid #ddd}
 .btn-secondary{background:var(--secondary-color);color:var(--black);border:1px solid #ddd}
 .btn-danger{background:var(--danger);color:white;border:0}
-.btn-small { padding: 4px 8px; font-size: 13px; }
+/* Ajuste para botões menores específicos */
+.btn-small { padding: 8px 12px; font-size: 14px; } 
 
 .small-btns{display:flex;gap:6px}
 
@@ -76,13 +79,23 @@ input, select {
     border: 1px solid #ddd;
     width: 100%; 
 }
+textarea {
+    min-height: 80px; 
+    resize: vertical; 
+    font-size: 14px;
+    padding: 8px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    width: 100%; 
+}
 
 
 /* Tabela de Produtos */
 .product-list{max-height:560px;overflow-y:auto}
 table{width:100%;border-collapse:collapse; font-size: 14px;}
 th,td{padding:10px 8px; border-bottom:1px solid #f1f1f1;text-align:left}
-td button { margin-right: 4px; padding: 4px 6px; font-size: 12px; }
+/* Ajuste de tamanho dos botões dentro da tabela */
+td button { margin-right: 4px; padding: 4px 6px; font-size: 12px; } 
 
 /* Carrinho */
 .cart{position:sticky;top:16px; display: flex; flex-direction: column; gap: 8px;}
@@ -128,3 +141,63 @@ td button { margin-right: 4px; padding: 4px 6px; font-size: 12px; }
     .cart{position:relative}
 }
 .product-list td .accent{color:var(--yellow);background:var(--black);}
+
+/* === ESTILOS PARA O NOVO ALERTA CUSTOMIZADO === */
+.custom-alert-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: none; 
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+    opacity: 0;
+    transition: opacity 0.2s ease-out;
+}
+
+.custom-alert-overlay.show {
+    opacity: 1;
+}
+
+.custom-alert-box {
+    background: #fff;
+    padding: 30px;
+    border-radius: 10px;
+    text-align: center;
+    max-width: 400px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    transform: scale(0.95);
+    transition: transform 0.2s ease-out;
+}
+
+.custom-alert-overlay.show .custom-alert-box {
+    transform: scale(1);
+}
+
+.custom-alert-icon {
+    font-size: 40px;
+    margin-bottom: 15px;
+    transition: color 0.2s;
+}
+
+/* Cores dos ícones */
+.custom-alert-icon.success { color: #28a745; }
+.custom-alert-icon.error { color: var(--danger); } 
+.custom-alert-icon.warning { color: var(--yellow); } 
+.custom-alert-icon.info { color: #007bff; }
+
+#alertMessage {
+    margin: 15px 0 20px 0;
+    line-height: 1.5;
+    color: #333;
+}
+
+#alertCloseBtn {
+    width: 100%;
+    padding: 12px;
+    font-size: 16px;
+    font-weight: bold;
+}

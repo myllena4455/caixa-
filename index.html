@@ -9,11 +9,12 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
 
     <link rel="stylesheet" href="css/estilos.css" />
+    
 </head>
 <body>
     <header>
-        <h1><i class="fas fa-cash-register"></i> Caixa Registradora</h1>
-        <div class="muted">LK</div>
+        <h1><i class="fas fa-cash-register"></i> Caixa Registradora —  LK Imports</h1>
+        <div class="muted">Lk</div>
     </header>
 
     <main class="container">
@@ -98,12 +99,20 @@
             <div class="modal-body">
                 <input id="cust_name" placeholder="Nome do cliente (opcional)" />
                 <input id="cust_cpf" placeholder="CPF do cliente (opcional)" />
+                
+                <input id="discount" placeholder="Desconto (ex: 5.00)" />
+                <input id="additional_value" placeholder="Valor Adicional (Taxa/Frete)" /> 
+                
+                <textarea id="sale_notes" placeholder="Observações da Venda (Entrega, detalhes)"></textarea> 
+
                 <select id="payment_method">
                     <option value="Dinheiro">Dinheiro</option>
-                    <option value="Cartão">Cartão</option>
+                    <option value="Cartão Débito">Cartão Débito</option>
+                    <option value="Cartão Crédito">Cartão Crédito</option>
                     <option value="PIX">PIX</option>
+                    <option value="Transferência">Transferência</option>
                 </select>
-                <input id="discount" placeholder="Desconto (ex: 5.00)" />
+
                 <div class="modal-actions">
                     <button id="modalCheckoutCancel" class="btn-secondary">Cancelar</button>
                     <button id="modalCheckoutConfirm" class="btn-primary">Confirmar e Gerar Nota (PDF)</button>
@@ -130,9 +139,19 @@
     <div id="print-area" style="display:none"></div>
 
     <footer>
-        <div class="muted">Gera nota/recibo em PDF.</div>
+        <div class="muted">Gera nota/recibo em PDF — não é NF-e oficial.</div>
     </footer>
+    
+    <div id="customAlert" class="custom-alert-overlay">
+        <div class="custom-alert-box">
+            <div id="alertIcon" class="custom-alert-icon"></div>
+            <h3 id="alertTitle"></h3>
+            <p id="alertMessage"></p>
+            <button id="alertCloseBtn" class="btn-primary">OK, ENTENDI</button>
+        </div>
+    </div>
 
     <script src="js/site.js"></script>
 </body>
 </html>
+
