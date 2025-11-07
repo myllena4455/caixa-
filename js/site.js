@@ -13,8 +13,9 @@ let sales = JSON.parse(localStorage.getItem(KEY_SALES) || '[]');
 let store = JSON.parse(localStorage.getItem(KEY_STORE) || '{"name": "LK Imports"}'); 
 let cart = [];
 let editingCode = null;
+let currentConfirmCallback = null; // Usado para gerenciar o fluxo do customConfirm
 
-// === FUNÇÃO DE ALERTA CUSTOMIZADA ===
+// === FUNÇÕES DE ALERTA/CONFIRMAÇÃO CUSTOMIZADAS ===
 function thematicAlert(message, title = 'Aviso do Sistema', type = 'info') {
     const overlay = el('customAlert');
     const iconEl = el('alertIcon');
@@ -47,6 +48,35 @@ function thematicAlert(message, title = 'Aviso do Sistema', type = 'info') {
     };
 }
 
+function customConfirm(message, title = 'Confirmação Necessária', callback) {
+    const overlay = el('customConfirm');
+    el('confirmTitle').textContent = title;
+    el('confirmMessage').textContent = message;
+    
+    // Mostra o modal
+    overlay.style.display = 'flex';
+    setTimeout(() => overlay.classList.add('show'), 10);
+    
+    currentConfirmCallback = callback;
+
+    // Remove listeners antigos para evitar chamadas duplicadas
+    el('confirmOkBtn').onclick = null;
+    el('confirmCancelBtn').onclick = null;
+    
+    const closeAndCallback = (result) => {
+        overlay.classList.remove('show');
+        setTimeout(() => overlay.style.display = 'none', 200);
+        if (currentConfirmCallback) {
+            currentConfirmCallback(result);
+            currentConfirmCallback = null;
+        }
+    };
+
+    el('confirmOkBtn').onclick = () => closeAndCallback(true);
+    el('confirmCancelBtn').onclick = () => closeAndCallback(false);
+}
+
+
 function init(){
     el('todayDate').textContent = new Date().toLocaleDateString();
     bindEvents(); 
@@ -61,17 +91,18 @@ function bindEvents(){
     el('modalCancel').onclick = closeModal;
     el('modalSave').onclick = saveProduct;
     el('search').oninput = renderProducts;
+    // Usa thematicAlert ao invés de alert
     el('btnEmpty').onclick = () => { cart = []; renderCart(); thematicAlert('Carrinho de compras esvaziado.', 'Limpeza', 'info'); };
     el('btnAddToCart').onclick = addSelectedToCart;
     el('btnCheckout').onclick = () => openCheckoutModal();
     el('btnExport').onclick = exportBackup;
     el('btnImport').onclick = importBackup;
     el('btnReport').onclick = generateReport; 
-    el('btnClearSales').onclick = finalizeDay;
+    el('btnClearSales').onclick = finalizeDay; // Usa customConfirm
     el('btnPrintLast').onclick = printLastReceipt;
     el('codeSearch').addEventListener('keydown', e => { if(e.key === 'Enter') findByCode(); });
     el('modalCheckoutCancel').onclick = () => el('modalCheckout').style.display = 'none';
-    el('modalCheckoutConfirm').onclick = confirmCheckout;
+    el('modalCheckoutConfirm').onclick = confirmCheckout; // Usa customConfirm internamente
     el('btnStoreConfig').onclick = openStoreModal;
     el('modalStoreCancel').onclick = () => el('modalStore').style.display = 'none';
     el('modalStoreSave').onclick = saveStoreConfig;
@@ -94,7 +125,7 @@ function handleProductListClick(e) {
     const action = btn.dataset.action;
 
     if (action === 'edit') openModal(code);
-    else if (action === 'delete') deleteProduct(code);
+    else if (action === 'delete') deleteProduct(code); // Usa customConfirm
     else if (action === 'quickadd') quickAdd(code);
 }
 
@@ -216,27 +247,8 @@ function renderCart(){
     el('cartTotal').textContent = money(total);
 }
 
-function confirmCheckout(){
-    const totalNoDiscount = cart.reduce((s, i) => s + (i.price * i.qty), 0);
-    const discount = parseFloat(String(el('discount').value).replace(',', '.')) || 0;
-    // NOVO: Valor adicional (deve ser somado)
-    const additionalValue = parseFloat(String(el('additional_value').value).replace(',', '.')) || 0;
-    
-    // Cálculo do total: Total dos itens - Desconto + Valor Adicional
-    const total = Math.max(0, totalNoDiscount - discount) + additionalValue;
-    
-    // NOVO: Observações
-    const saleNotes = el('sale_notes').value.trim(); 
-    
-    if (cart.length === 0) {
-        thematicAlert('O carrinho está vazio. Adicione itens antes de fechar a venda.', 'Erro de Venda', 'error');
-        return;
-    }
-    
-    if (totalNoDiscount > 0 && total <= 0) { 
-        if (!confirm('O desconto zera ou supera o total. Deseja confirmar a venda com total R$ 0,00?')) return;
-    }
-
+// Nova função auxiliar para processar a venda, chamada por confirmCheckout
+function processSale(total, totalNoDiscount, discount, additionalValue, saleNotes) {
     const sale = {
         id: 'S' + Date.now(),
         date: new Date().toISOString(),
@@ -246,7 +258,6 @@ function confirmCheckout(){
         customer_cpf: el('cust_cpf').value.trim(), 
         payment_method: el('payment_method').value, 
         discount,
-        // NOVO: Salvando valor adicional e observações
         additional_value: additionalValue,
         notes: saleNotes
     };
@@ -268,6 +279,29 @@ function confirmCheckout(){
     updateTodayTotal();
     renderProducts();
     thematicAlert(`Venda ${sale.id} finalizada com sucesso! O recibo em PDF foi gerado.`, 'Venda Concluída', 'success');
+}
+
+function confirmCheckout(){
+    const totalNoDiscount = cart.reduce((s, i) => s + (i.price * i.qty), 0);
+    const discount = parseFloat(String(el('discount').value).replace(',', '.')) || 0;
+    const additionalValue = parseFloat(String(el('additional_value').value).replace(',', '.')) || 0;
+    const total = Math.max(0, totalNoDiscount - discount) + additionalValue;
+    const saleNotes = el('sale_notes').value.trim(); 
+    
+    if (cart.length === 0) {
+        thematicAlert('O carrinho está vazio. Adicione itens antes de fechar a venda.', 'Erro de Venda', 'error');
+        return;
+    }
+    
+    if (totalNoDiscount > 0 && total <= 0) { 
+        // Usa customConfirm
+        customConfirm('O desconto zera ou supera o total. Deseja confirmar a venda com total R$ 0,00?', 'Confirmação de Venda', (confirmed) => {
+            if (confirmed) processSale(total, totalNoDiscount, discount, additionalValue, saleNotes);
+        });
+        return;
+    }
+    
+    processSale(total, totalNoDiscount, discount, additionalValue, saleNotes);
 }
 
 
@@ -375,11 +409,15 @@ function generateReport(){
 // Funções auxiliares restantes
 function closeModal(){ el('modal').style.display = 'none'; }
 function deleteProduct(code){
-    if(!confirm(`Tem certeza que deseja APAGAR o produto com código ${code}? Esta ação é irreversível.`)) return;
-    products = products.filter(p => p.code !== code);
-    localStorage.setItem(KEY_PRODUCTS, JSON.stringify(products));
-    renderProducts();
-    thematicAlert(`Produto ${code} foi removido do sistema.`, 'Item Apagado', 'info');
+    // Usa customConfirm
+    customConfirm(`Tem certeza que deseja APAGAR o produto com código ${code}? Esta ação é irreversível.`, 'Confirmação de Exclusão', (confirmed) => {
+        if (!confirmed) return;
+        
+        products = products.filter(p => p.code !== code);
+        localStorage.setItem(KEY_PRODUCTS, JSON.stringify(products));
+        renderProducts();
+        thematicAlert(`Produto ${code} foi removido do sistema.`, 'Item Apagado', 'info');
+    });
 }
 function quickAdd(code){ 
     const p = products.find(x => x.code === code); 
@@ -461,4 +499,63 @@ function escapeHtml(s){ return String(s || '').replace(/&/g, '&amp;').replace(/<
 function exportBackup(){
     const data = { store, products, sales };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.c
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = `pos_backup_${new Date().toISOString().slice(0,10)}.json`; a.click(); URL.revokeObjectURL(url);
+    thematicAlert('Backup de todos os dados (Produtos, Vendas, Loja) baixado como pos_backup.json.', 'Backup Concluído', 'success');
+}
+function importBackup(){
+    const inp = document.createElement('input'); inp.type='file'; inp.accept='application/json';
+    inp.onchange = e => {
+        const f = e.target.files[0]; if(!f) return;
+        
+        // Usa customConfirm
+        customConfirm('Atenção: A importação irá SOBRESCREVER todos os seus dados atuais (Produtos e Vendas) com o conteúdo do arquivo. Deseja continuar?', 'Confirmação de Importação', (confirmed) => {
+             if (!confirmed) return;
+             
+             const reader = new FileReader();
+             reader.onload = ev => {
+                try{
+                    const data = JSON.parse(ev.target.result);
+                    store = data.store || store;
+                    products = data.products || products;
+                    sales = data.sales || sales;
+                    localStorage.setItem(KEY_STORE, JSON.stringify(store));
+                    localStorage.setItem(KEY_PRODUCTS, JSON.stringify(products));
+                    localStorage.setItem(KEY_SALES, JSON.stringify(sales));
+                    renderProducts(); updateTodayTotal();
+                    thematicAlert('Importação concluída com sucesso! Os dados foram carregados.', 'Sucesso na Importação', 'success');
+                }catch(err){ thematicAlert('Erro ao processar o arquivo. Certifique-se de que é um arquivo JSON de backup válido.', 'Arquivo Inválido', 'error'); }
+            };
+            reader.readAsText(f);
+        });
+    };
+    inp.click();
+}
+function finalizeDay(){
+    // Usa customConfirm
+    customConfirm('Atenção: Finalizar o dia irá APAGAR TODAS AS VENDAS LOCAIS. Garanta que o relatório do dia foi exportado. Deseja continuar?', 'Finalizar Dia de Vendas', (confirmed) => {
+        if (!confirmed) return;
+
+        sales = [];
+        localStorage.setItem(KEY_SALES, JSON.stringify(sales));
+        updateTodayTotal();
+        thematicAlert('Vendas do dia zeradas no sistema.', 'Dia Finalizado', 'info');
+    });
+}
+function openStoreModal(){
+    el('store_name').value = store.name || '';
+    el('store_cnpj').value = store.cnpj || '';
+    el('store_address').value = store.address || '';
+    el('modalStore').style.display = 'flex';
+}
+function saveStoreConfig(){
+    store.name = el('store_name').value.trim();
+    store.cnpj = el('store_cnpj').value.trim();
+    store.address = el('store_address').value.trim();
+    localStorage.setItem(KEY_STORE, JSON.stringify(store));
+    thematicAlert('Configuração da loja salva com sucesso!', 'Loja Configurada', 'success');
+    el('modalStore').style.display = 'none';
+}
+
+// Inicializa a aplicação
+init();

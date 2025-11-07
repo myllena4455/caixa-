@@ -1,20 +1,19 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
-    <meta charset="utf-8" />
+  <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Caixa Registradora — POS (Sem servidor)</title>
+    <title>Caixa Registradora — lk</title>
    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
     
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
 
     <link rel="stylesheet" href="css/estilos.css" />
-    
 </head>
 <body>
     <header>
         <h1><i class="fas fa-cash-register"></i> Caixa Registradora —  LK Imports</h1>
-        <div class="muted">Lk</div>
+        <div class="muted"></div>
     </header>
 
     <main class="container">
@@ -150,8 +149,19 @@
             <button id="alertCloseBtn" class="btn-primary">OK, ENTENDI</button>
         </div>
     </div>
+    
+    <div id="customConfirm" class="custom-alert-overlay">
+        <div class="custom-alert-box">
+            <div id="confirmIcon" class="custom-alert-icon warning"></div>
+            <h3 id="confirmTitle">Confirmação Necessária</h3>
+            <p id="confirmMessage"></p>
+            <div class="modal-actions" style="justify-content: space-around;">
+                <button id="confirmCancelBtn" class="btn-secondary">Cancelar</button>
+                <button id="confirmOkBtn" class="btn-danger">Confirmar</button>
+            </div>
+        </div>
+    </div>
 
     <script src="js/site.js"></script>
 </body>
 </html>
-

@@ -142,7 +142,7 @@ td button { margin-right: 4px; padding: 4px 6px; font-size: 12px; }
 }
 .product-list td .accent{color:var(--yellow);background:var(--black);}
 
-/* === ESTILOS PARA O NOVO ALERTA CUSTOMIZADO === */
+/* === ESTILOS PARA O NOVO ALERTA CUSTOMIZADO (ALERT e CONFIRM) === */
 .custom-alert-overlay {
     position: fixed;
     top: 0;
@@ -186,10 +186,10 @@ td button { margin-right: 4px; padding: 4px 6px; font-size: 12px; }
 /* Cores dos ícones */
 .custom-alert-icon.success { color: #28a745; }
 .custom-alert-icon.error { color: var(--danger); } 
-.custom-alert-icon.warning { color: var(--yellow); } 
+.custom-alert-icon.warning { color: var(--yellow); } /* Usa a cor temática amarela */
 .custom-alert-icon.info { color: #007bff; }
 
-#alertMessage {
+#alertMessage, #confirmMessage {
     margin: 15px 0 20px 0;
     line-height: 1.5;
     color: #333;
