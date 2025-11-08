@@ -121,19 +121,33 @@
     </div>
 
     <div class="modal" id="modalStore">
-        <div class="modal-inner">
-            <h3>Configuração da Loja</h3>
-            <div class="modal-body">
-                <input id="store_name" placeholder="Nome da loja" />
-                <input id="store_cnpj" placeholder="CNPJ" />
-                <input id="store_address" placeholder="Endereço" />
-                <div class="modal-actions">
-                    <button id="modalStoreCancel" class="btn-secondary">Cancelar</button>
-                    <button id="modalStoreSave" class="btn-primary">Salvar</button>
-                </div>
+    <div class="modal-inner">
+        <h3><i class="fas fa-cog"></i> Configuração da Loja (DB)</h3>
+        <div class="modal-body">
+            <input id="store_razao_social" placeholder="Razão Social (Obrigatório)" required />
+            <input id="store_name" placeholder="Nome Fantasia (Ex: LK Imports)" required />
+            <input id="store_cnpj" placeholder="CNPJ (00.000.000/0000-00)" required />
+            
+            <input id="store_address" placeholder="Endereço Completo" />
+            <input id="store_phone" placeholder="Telefone de Contato" />
+
+            <select id="store_tax_regime">
+                <option value="">Selecione o Regime Tributário</option>
+                <option value="Simples Nacional">Simples Nacional</option>
+                <option value="Lucro Presumido">Lucro Presumido</option>
+                <option value="MEI">MEI</option>
+            </select>
+
+            <label for="store_logo_upload" class="small-label" style="margin-top: 10px; display: block;">Logo (Para recibos - Arquivo):</label>
+            <input type="file" id="store_logo_upload" accept="image/*" />
+            
+            <div class="modal-actions">
+                <button id="modalStoreCancel" class="btn-secondary">Cancelar</button>
+                <button id="modalStoreSave" class="btn-primary">Salvar Configurações (DB)</button>
             </div>
         </div>
     </div>
+</div>
 
     <div id="print-area" style="display:none"></div>
 

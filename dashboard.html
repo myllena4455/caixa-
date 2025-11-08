@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Dashboard Gerencial — LK Imports</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link rel="stylesheet" href="css/estilos.css" /> 
+    <style>
+        /* CSS para o Dashboard, usando suas variáveis do estilos.css */
+        .dashboard-header {
+            background: var(--black); 
+            color: var(--yellow);     
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: var(--shadow);
+            margin-bottom: 20px;
+        }
+        .dashboard-header h2 {
+            margin: 0;
+            font-size: 20px;
+        }
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        .kpi-card {
+            background: var(--card);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 16px;
+            border-left: 5px solid var(--yellow); /* Borda Amarela como Destaque */
+        }
+        .kpi-card .value {
+            font-size: 2.2em;
+            font-weight: bold;
+            color: var(--black); 
+        }
+        .kpi-card .label {
+            font-size: 0.9em;
+            color: var(--muted);
+            margin-bottom: 5px;
+        }
+        .kpi-card.alert {
+            border-left-color: var(--danger); /* Usa Vermelho para Alerta Crítico */
+        }
+        .quick-actions {
+            display: flex;
+            gap: 10px;
+        }
+        .quick-actions button {
+            flex: 1;
+            background: var(--primary-color);
+            color: var(--black);
+        }
+        .chart-area {
+            background: var(--card);
+            padding: 16px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            min-height: 300px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <header class="dashboard-header">
+        <h2><i class="fas fa-chart-line"></i> PAINEL DE CONTROLE - LK Imports</h2>
+        <a href="index.html" class="btn-primary" style="background: var(--yellow);"><i class="fas fa-cash-register"></i> PDV (Caixa)</a>
+    </header>
+
+    <main class="container" style="display: block;"> 
+        
+        <div class="kpi-grid">
+            <div class="kpi-card">
+                <div class="label">Faturamento Hoje</div>
+                <div class="value" id="kpi_faturamento">R$ 0,00</div> 
+            </div>
+            <div class="kpi-card">
+                <div class="label">Ticket Médio</div>
+                <div class="value" id="kpi_ticket_medio">R$ 0,00</div>
+            </div>
+            <div class="kpi-card alert"> 
+                <div class="label" style="color: var(--danger);">Estoque Crítico</div>
+                <div class="value" id="kpi_estoque_critico" style="color: var(--danger);">0</div> 
+            </div>
+            <div class="kpi-card">
+                <div class="label">Clientes Cadastrados</div>
+                <div class="value" id="kpi_clientes">0</div> 
+            </div>
+        </div>
+
+        <div class="chart-area">
+            <h3><i class="fas fa-chart-bar"></i> Desempenho de Vendas Semanal</h3>
+            <div id="vendas_chart" style="height: 250px;">
+                Aguardando dados do Banco de Dados para gerar o gráfico...
+            </div>
+        </div>
+
+        <h3>Acessos Rápidos</h3>
+        <div class="quick-actions">
+            <button class="btn-primary"><i class="fas fa-cubes"></i> Gerenciar Produtos</button>
+            <button class="btn-primary"><i class="fas fa-users"></i> Gerenciar Clientes</button>
+            <button class="btn-primary"><i class="fas fa-file-alt"></i> Relatórios Avançados</button>
+        </div>
+
+    </main>
+
+    <script src="js/dashboard.js"></script>
+</body>
+</html>
