@@ -1,3 +1,57 @@
+/* === Bootstrap de UI para index.html === */
+(function(){
+  // Helpers básicos
+  const el = (id) => document.getElementById(id);
+  const sel = (q) => document.querySelector(q);
+  const KEY_STORE = 'LK_STORE';
+  const safeParse = (t) => { try { return JSON.parse(t||'{}') } catch(e){ return {} } };
+  window.el = el; // expõe porque o resto do código usa
+  window.KEY_STORE = window.KEY_STORE || KEY_STORE;
+  window.store = window.store || safeParse(localStorage.getItem(window.KEY_STORE));
+
+  // Util: esconder elementos por id
+  function hide(id){ const n = el(id); if(n) n.style.display='none'; }
+  function showFlex(id){ const n = el(id); if(n) n.style.display='flex'; }
+
+  // Fallbacks para funções ausentes
+  const notImpl = (name) => () => { console.warn(name + " não está implementada no site.js atual."); };
+  const maybe = (fnName) => (typeof window[fnName] === 'function' ? window[fnName] : notImpl(fnName));
+
+  window.addEventListener('DOMContentLoaded', function(){
+    const bind = (id, fn) => { const b = el(id); if(b) b.addEventListener('click', fn); };
+
+    // Botões principais (Produtos / Vendas / Relatórios)
+    bind('btnAdd',           maybe('addProduct'));
+    bind('btnImport',        maybe('importProducts'));
+    bind('btnExport',        maybe('exportProducts'));
+    bind('btnEmpty',         maybe('clearForm'));
+    bind('btnAddToCart',     maybe('addToCart'));
+    bind('btnCheckout',      maybe('openCheckoutModal'));
+    bind('btnPrintLast',     maybe('printLastReceipt'));
+    bind('btnReport',        maybe('generateReport'));
+    bind('btnClearSales',    maybe('closeDay'));
+
+    // Configuração da Loja (existem em site.js)
+    bind('btnStoreConfig',   () => (typeof openStoreModal === 'function' ? openStoreModal() : showFlex('modalStore')));
+    bind('modalStoreSave',   maybe('saveStoreConfig'));
+    bind('modalStoreCancel', () => hide('modalStore'));
+
+    // Modais genéricos
+    bind('modalCancel',        () => hide('modal'));
+    bind('modalCheckoutCancel',() => hide('modalCheckout'));
+    bind('modalCheckoutConfirm', maybe('confirmCheckout'));
+
+    // Alertas e Confirmações custom
+    bind('alertCloseBtn',    () => hide('customAlert'));
+    bind('confirmCancelBtn', () => hide('customConfirm'));
+    bind('confirmOkBtn',     maybe('onConfirmOk'));
+
+    console.log('[Bootstrap] Listeners de botões ligados.');
+  });
+})(); 
+/* === Fim do Bootstrap === */
+
+
 // ... (Código anterior do seu app.js, incluindo as chaves KEY_STORE e a função openStoreModal)
 
 // === FUNÇÕES DE CONFIGURAÇÃO DA LOJA (MODIFICADAS) ===

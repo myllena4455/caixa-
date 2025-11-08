@@ -7,7 +7,7 @@ const bcrypt = require('bcrypt'); // Biblioteca para criptografia de senha (Requ
 
 const app = express();
 const PORT = 3000;
-const SALT_ROUNDS = 10; // Custo de criptografia
+const SALT_ROUNDS = 10; // Custo de criptografia para o bcrypt
 
 // Configuração do Banco de Dados SQLite
 const db = new sqlite3.Database(path.join(__dirname, 'database.sqlite'), (err) => {
@@ -46,12 +46,13 @@ const db = new sqlite3.Database(path.join(__dirname, 'database.sqlite'), (err) =
     }
 });
 
-// Middleware
+// Middleware: Permite que o servidor processe dados JSON e formulários
 app.use(express.json()); 
 app.use(express.urlencoded({ extended: true })); 
 
 // ==========================================================
-// 🚨 ROTA DE REDIRECIONAMENTO INICIAL (RESOLVE O SEU PROBLEMA)
+// 🚨 ROTA DE REDIRECIONAMENTO INICIAL (FORÇA O LOGIN)
+// Esta rota deve ser a primeira a ser configurada!
 // Se o usuário acessar http://localhost:3000/, ele vai para a tela de login.
 // ==========================================================
 app.get('/', (req, res) => {
@@ -59,7 +60,8 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'login.html'));
 });
 
-// Serve arquivos estáticos (CSS, JS, imagens) a partir da raiz do projeto
+// Serve arquivos estáticos (CSS, JS, imagens, e outros HTMLs como index.html)
+// a partir da raiz do projeto (um nível acima de 'backend')
 app.use(express.static(path.join(__dirname, '..'))); 
 
 // ==========================================================
