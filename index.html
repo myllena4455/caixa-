@@ -1,2 +1,181 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Caixa Registradora — lk versão 0.1</title>
+   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
 
-<!DOCTYPE html><html><body><h1>LK IMPORTS - Index Placeholder</h1></body></html>
+    <link rel="stylesheet" href="css/estilos.css" />
+</head>
+<body>
+    <header>
+        <h1><i class="fas fa-cash-register"></i> Caixa Registradora —  LK Imports</h1>
+        <div class="muted"></div>
+    </header>
+
+    <main class="container">
+        <section class="left-panel">
+            <div class="card product-management">
+                <div class="topbar">
+                    <div class="search-wrapper"> 
+                        <i class="fas fa-search search-icon"></i>
+                        <input id="search" placeholder="Pesquisar produtos (nome ou código)" />
+                    </div>
+                    
+                    <button id="btnAdd" class="btn-primary" title="Cadastrar produto"><i class="fas fa-plus"></i> Cadastrar</button>
+                    <div class="small-btns">
+                        <button id="btnImport" class="btn-secondary"><i class="fas fa-file-import"></i> Importar</button>
+                        <button id="btnExport" class="btn-secondary"><i class="fas fa-file-export"></i> Exportar</button>
+                        <button id="btnStoreConfig" class="btn-secondary"><i class="fas fa-cog"></i> Config Loja</button>
+                    </div>
+                </div>
+
+                <div id="productList" class="product-list"></div>
+            </div>
+
+            <div class="card summary summary-highlight"> 
+                <div>
+                    <div class="muted small"><i class="far fa-calendar-alt"></i> Vendas do dia (<span id="todayDate"></span>)</div>
+                    <div class="total" id="todayTotal">R$ 0,00</div>
+                </div>
+                <div class="summary-actions">
+                    <button id="btnReport" class="btn-secondary"><i class="fas fa-chart-bar"></i> Gerar Relatório</button>
+                    <button id="btnClearSales" class="btn-danger"><i class="fas fa-times-circle"></i> Finalizar Dia</button>
+                </div>
+            </div>
+        </section>
+
+        <aside class="cart card">
+            <div class="cart-header">
+                <strong>Carrinho</strong>
+                <button id="btnEmpty" class="btn-secondary btn-small">Limpar</button>
+            </div>
+
+            <div class="cart-controls">
+                <input id="qty" type="number" value="1" min="1" />
+                <button id="btnAddToCart" class="btn-primary btn-small">Adicionar</button>
+            </div>
+            
+            <div class="cart-items" id="cartItems"></div>
+
+            <div class="total" id="cartTotal">R$ 0,00</div>
+
+            <div class="cart-actions">
+                <button id="btnCheckout" class="btn-primary"><i class="fas fa-cash-register"></i> Fechar Venda</button>
+                <button id="btnPrintLast" class="btn-secondary"><i class="fas fa-print"></i> Imprimir Última Nota</button>
+            </div>
+
+            <div class="code-search">
+                <label class="small">Buscar por código:</label>
+                <input id="codeSearch" placeholder="Insira o código e Enter" />
+            </div>
+        </aside>
+    </main>
+
+    <div class="modal" id="modal">
+        <div class="modal-inner">
+            <h3 id="modalTitle">Cadastrar Produto</h3>
+            <div class="modal-body">
+                <input id="p_code" placeholder="Código (único)" />
+                <input id="p_name" placeholder="Nome do produto" />
+                <input id="p_price" placeholder="Preço (ex: 12.50)" />
+                <input id="p_stock" placeholder="Quantidade em estoque" type="number" />
+                <label class="small-label">Última Venda: <span id="p_last_sale" class="muted">N/A</span></label>
+                <div class="modal-actions">
+                    <button id="modalCancel" class="btn-secondary">Cancelar</button>
+                    <button id="modalSave" class="btn-primary">Salvar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="modalCheckout">
+        <div class="modal-inner">
+            <h3>Fechar Venda</h3>
+            <div class="modal-body">
+                <input id="cust_name" placeholder="Nome do cliente (opcional)" />
+                <input id="cust_cpf" placeholder="CPF do cliente (opcional)" />
+                
+                <input id="discount" placeholder="Desconto (ex: 5.00)" />
+                <input id="additional_value" placeholder="Valor Adicional (Taxa/Frete)" /> 
+                
+                <textarea id="sale_notes" placeholder="Observações da Venda (Entrega, detalhes)"></textarea> 
+
+                <select id="payment_method">
+                    <option value="Dinheiro">Dinheiro</option>
+                    <option value="Cartão Débito">Cartão Débito</option>
+                    <option value="Cartão Crédito">Cartão Crédito</option>
+                    <option value="PIX">PIX</option>
+                    <option value="Transferência">Transferência</option>
+                </select>
+
+                <div class="modal-actions">
+                    <button id="modalCheckoutCancel" class="btn-secondary">Cancelar</button>
+                    <button id="modalCheckoutConfirm" class="btn-primary">Confirmar e Gerar Nota (PDF)</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="modalStore">
+    <div class="modal-inner">
+        <h3><i class="fas fa-cog"></i> Configuração da Loja (DB)</h3>
+        <div class="modal-body">
+            <input id="store_razao_social" placeholder="Razão Social (Obrigatório)" required />
+            <input id="store_name" placeholder="Nome Fantasia (Ex: LK Imports)" required />
+            <input id="store_cnpj" placeholder="CNPJ (00.000.000/0000-00)" required />
+            
+            <input id="store_address" placeholder="Endereço Completo" />
+            <input id="store_phone" placeholder="Telefone de Contato" />
+
+            <select id="store_tax_regime">
+                <option value="">Selecione o Regime Tributário</option>
+                <option value="Simples Nacional">Simples Nacional</option>
+                <option value="Lucro Presumido">Lucro Presumido</option>
+                <option value="MEI">MEI</option>
+            </select>
+
+            <label for="store_logo_upload" class="small-label" style="margin-top: 10px; display: block;">Logo (Para recibos - Arquivo):</label>
+            <input type="file" id="store_logo_upload" accept="image/*" />
+            
+            <div class="modal-actions">
+                <button id="modalStoreCancel" class="btn-secondary">Cancelar</button>
+                <button id="modalStoreSave" class="btn-primary">Salvar Configurações (DB)</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <div id="print-area" style="display:none"></div>
+
+    <footer>
+        <div class="muted">Gera nota/recibo em PDF — não é NF-e oficial.</div>
+    </footer>
+    
+    <div id="customAlert" class="custom-alert-overlay">
+        <div class="custom-alert-box">
+            <div id="alertIcon" class="custom-alert-icon"></div>
+            <h3 id="alertTitle"></h3>
+            <p id="alertMessage"></p>
+            <button id="alertCloseBtn" class="btn-primary">OK, ENTENDI</button>
+        </div>
+    </div>
+    
+    <div id="customConfirm" class="custom-alert-overlay">
+        <div class="custom-alert-box">
+            <div id="confirmIcon" class="custom-alert-icon warning"></div>
+            <h3 id="confirmTitle">Confirmação Necessária</h3>
+            <p id="confirmMessage"></p>
+            <div class="modal-actions" style="justify-content: space-around;">
+                <button id="confirmCancelBtn" class="btn-secondary">Cancelar</button>
+                <button id="confirmOkBtn" class="btn-danger">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/site.js"></script>
+</body>
+</html>
