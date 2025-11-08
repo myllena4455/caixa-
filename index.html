@@ -1,181 +1,238 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Caixa Registradora — lk versão 0.1</title>
-   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-    
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Frente de Caixa - Vendas</title>
 
-    <link rel="stylesheet" href="css/estilos.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    <link rel="stylesheet" href="css/estilos.css">
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    
 </head>
 <body>
-    <header>
-        <h1><i class="fas fa-cash-register"></i> Caixa Registradora —  LK Imports</h1>
-        <div class="muted"></div>
-    </header>
 
-    <main class="container">
-        <section class="left-panel">
-            <div class="card product-management">
-                <div class="topbar">
-                    <div class="search-wrapper"> 
-                        <i class="fas fa-search search-icon"></i>
-                        <input id="search" placeholder="Pesquisar produtos (nome ou código)" />
-                    </div>
-                    
-                    <button id="btnAdd" class="btn-primary" title="Cadastrar produto"><i class="fas fa-plus"></i> Cadastrar</button>
-                    <div class="small-btns">
-                        <button id="btnImport" class="btn-secondary"><i class="fas fa-file-import"></i> Importar</button>
-                        <button id="btnExport" class="btn-secondary"><i class="fas fa-file-export"></i> Exportar</button>
-                        <button id="btnStoreConfig" class="btn-secondary"><i class="fas fa-cog"></i> Config Loja</button>
-                    </div>
-                </div>
-
-                <div id="productList" class="product-list"></div>
-            </div>
-
-            <div class="card summary summary-highlight"> 
-                <div>
-                    <div class="muted small"><i class="far fa-calendar-alt"></i> Vendas do dia (<span id="todayDate"></span>)</div>
-                    <div class="total" id="todayTotal">R$ 0,00</div>
-                </div>
-                <div class="summary-actions">
-                    <button id="btnReport" class="btn-secondary"><i class="fas fa-chart-bar"></i> Gerar Relatório</button>
-                    <button id="btnClearSales" class="btn-danger"><i class="fas fa-times-circle"></i> Finalizar Dia</button>
-                </div>
-            </div>
-        </section>
-
-        <aside class="cart card">
-            <div class="cart-header">
-                <strong>Carrinho</strong>
-                <button id="btnEmpty" class="btn-secondary btn-small">Limpar</button>
-            </div>
-
-            <div class="cart-controls">
-                <input id="qty" type="number" value="1" min="1" />
-                <button id="btnAddToCart" class="btn-primary btn-small">Adicionar</button>
-            </div>
-            
-            <div class="cart-items" id="cartItems"></div>
-
-            <div class="total" id="cartTotal">R$ 0,00</div>
-
-            <div class="cart-actions">
-                <button id="btnCheckout" class="btn-primary"><i class="fas fa-cash-register"></i> Fechar Venda</button>
-                <button id="btnPrintLast" class="btn-secondary"><i class="fas fa-print"></i> Imprimir Última Nota</button>
-            </div>
-
-            <div class="code-search">
-                <label class="small">Buscar por código:</label>
-                <input id="codeSearch" placeholder="Insira o código e Enter" />
-            </div>
-        </aside>
-    </main>
-
-    <div class="modal" id="modal">
-        <div class="modal-inner">
-            <h3 id="modalTitle">Cadastrar Produto</h3>
-            <div class="modal-body">
-                <input id="p_code" placeholder="Código (único)" />
-                <input id="p_name" placeholder="Nome do produto" />
-                <input id="p_price" placeholder="Preço (ex: 12.50)" />
-                <input id="p_stock" placeholder="Quantidade em estoque" type="number" />
-                <label class="small-label">Última Venda: <span id="p_last_sale" class="muted">N/A</span></label>
-                <div class="modal-actions">
-                    <button id="modalCancel" class="btn-secondary">Cancelar</button>
-                    <button id="modalSave" class="btn-primary">Salvar</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal" id="modalCheckout">
-        <div class="modal-inner">
-            <h3>Fechar Venda</h3>
-            <div class="modal-body">
-                <input id="cust_name" placeholder="Nome do cliente (opcional)" />
-                <input id="cust_cpf" placeholder="CPF do cliente (opcional)" />
-                
-                <input id="discount" placeholder="Desconto (ex: 5.00)" />
-                <input id="additional_value" placeholder="Valor Adicional (Taxa/Frete)" /> 
-                
-                <textarea id="sale_notes" placeholder="Observações da Venda (Entrega, detalhes)"></textarea> 
-
-                <select id="payment_method">
-                    <option value="Dinheiro">Dinheiro</option>
-                    <option value="Cartão Débito">Cartão Débito</option>
-                    <option value="Cartão Crédito">Cartão Crédito</option>
-                    <option value="PIX">PIX</option>
-                    <option value="Transferência">Transferência</option>
-                </select>
-
-                <div class="modal-actions">
-                    <button id="modalCheckoutCancel" class="btn-secondary">Cancelar</button>
-                    <button id="modalCheckoutConfirm" class="btn-primary">Confirmar e Gerar Nota (PDF)</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal" id="modalStore">
-    <div class="modal-inner">
-        <h3><i class="fas fa-cog"></i> Configuração da Loja (DB)</h3>
-        <div class="modal-body">
-            <input id="store_razao_social" placeholder="Razão Social (Obrigatório)" required />
-            <input id="store_name" placeholder="Nome Fantasia (Ex: LK Imports)" required />
-            <input id="store_cnpj" placeholder="CNPJ (00.000.000/0000-00)" required />
-            
-            <input id="store_address" placeholder="Endereço Completo" />
-            <input id="store_phone" placeholder="Telefone de Contato" />
-
-            <select id="store_tax_regime">
-                <option value="">Selecione o Regime Tributário</option>
-                <option value="Simples Nacional">Simples Nacional</option>
-                <option value="Lucro Presumido">Lucro Presumido</option>
-                <option value="MEI">MEI</option>
-            </select>
-
-            <label for="store_logo_upload" class="small-label" style="margin-top: 10px; display: block;">Logo (Para recibos - Arquivo):</label>
-            <input type="file" id="store_logo_upload" accept="image/*" />
-            
-            <div class="modal-actions">
-                <button id="modalStoreCancel" class="btn-secondary">Cancelar</button>
-                <button id="modalStoreSave" class="btn-primary">Salvar Configurações (DB)</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-    <div id="print-area" style="display:none"></div>
-
-    <footer>
-        <div class="muted">Gera nota/recibo em PDF — não é NF-e oficial.</div>
-    </footer>
-    
     <div id="customAlert" class="custom-alert-overlay">
         <div class="custom-alert-box">
             <div id="alertIcon" class="custom-alert-icon"></div>
             <h3 id="alertTitle"></h3>
             <p id="alertMessage"></p>
-            <button id="alertCloseBtn" class="btn-primary">OK, ENTENDI</button>
+            <button id="alertCloseBtn" class="btn-primary">OK</button>
         </div>
     </div>
-    
+
     <div id="customConfirm" class="custom-alert-overlay">
         <div class="custom-alert-box">
-            <div id="confirmIcon" class="custom-alert-icon warning"></div>
-            <h3 id="confirmTitle">Confirmação Necessária</h3>
+            <div id="confirmIcon" class="custom-alert-icon"></div>
+            <h3 id="confirmTitle"></h3>
             <p id="confirmMessage"></p>
-            <div class="modal-actions" style="justify-content: space-around;">
+            <div class="alert-actions">
                 <button id="confirmCancelBtn" class="btn-secondary">Cancelar</button>
                 <button id="confirmOkBtn" class="btn-danger">Confirmar</button>
             </div>
         </div>
     </div>
+    
+    <div class="container">
+        <main class="main-content">
+            
+            <div class="dashboard card">
+                <div>
+                    <h4>Vendas de Hoje</h4>
+                    <span id="todayDate" class="muted"></span>
+                </div>
+                <div>
+                    <strong id="todayTotal">R$ 0,00</strong>
+                </div>
+                <div class="dashboard-actions">
+                    <button class="btn-secondary" id="btnReport" title="Gerar Relatório de Vendas"><i class="fas fa-file-pdf"></i> Relatório</button>
+                    <button class="btn-danger" id="btnClearSales" title="Zerar Contador de Vendas do Dia"><i class="fas fa-trash-alt"></i> Finalizar Dia</button>
+                    <button class="btn-secondary" id="btnPrintLast" title="Imprimir Última Venda"><i class="fas fa-print"></i> Última Nota</button>
+                    <button class="btn-secondary" id="btnStoreConfig" onclick="show('modalStore')" title="Configurações da Loja"><i class="fas fa-cog"></i> Loja</button>
+                </div>
+            </div>
 
-    <script src="js/site.js"></script>
+            <div class="product-management card">
+                <h3>Estoque de Produtos</h3>
+                <div class="topbar">
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="search" placeholder="Buscar por nome ou código..." />
+                    </div>
+                    <button class="btn-primary" id="btnAdd" onclick="show('modalAddProduct')"><i class="fas fa-plus"></i> Novo Produto</button>
+                </div>
+
+                <div class="product-table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Cód.</th>
+                                <th>Nome</th>
+                                <th>Preço</th>
+                                <th>Estoque</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="productListBody">
+                            </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </main>
+
+        <aside class="cart card">
+            <div class="cart-search">
+                <input type="text" id="codeSearch" placeholder="Código do produto" />
+                <input type="number" id="qty" value="1" min="1" />
+            </div>
+            <div class="cart-controls">
+                <button id="btnAddToCart" class="btn-primary" onclick="addToCart()"><i class="fas fa-cart-plus"></i> Adicionar</button>
+            </div>
+            
+            <div id="cartItems" class="cart-items">
+                <div class="muted" style="text-align:center; padding: 20px;">Carrinho vazio. Adicione itens.</div>
+            </div>
+
+            <div class="cart-footer">
+                <div class="cart-total-info">
+                    <strong>Total:</strong>
+                    <strong id="cartTotal">R$ 0,00</strong>
+                </div>
+                <div class="cart-actions">
+                    <button class="btn-secondary" onclick="clearCart()"><i class="fas fa-sync-alt"></i> Limpar</button>
+                    <button class="btn-success" onclick="show('modalCheckout')" title="Finalizar Venda"><i class="fas fa-cash-register"></i> Fechar Venda</button>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <div id="modalAddProduct" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Cadastrar Produto</h2>
+                <span class="close" onclick="hide('modalAddProduct')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <label for="productCode">Código do Produto (ID):</label>
+                <input type="text" id="productCode" placeholder="Ex: P001" required>
+                
+                <label for="productName">Nome do Produto:</label>
+                <input type="text" id="productName" placeholder="Ex: Perfume Luxo" required>
+
+                <label for="productPrice">Preço de Venda (R$):</label>
+                <input type="text" id="productPrice" placeholder="Ex: 99,90" required>
+
+                <label for="productStock">Estoque Inicial / Atual:</label>
+                <input type="number" id="productStock" value="0" min="0" required>
+                
+                <label for="productUnit">Unidade de Medida:</label>
+                <select id="productUnit">
+                    <option value="UN">Unidade (UN)</option>
+                    <option value="KG">Quilograma (KG)</option>
+                    <option value="MT">Metro (MT)</option>
+                    <option value="PC">Peça (PC)</option>
+                </select>
+
+                <p class="muted small">Última Venda: <strong id="p_last_sale">N/A</strong></p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="hide('modalAddProduct')">Cancelar</button>
+                <button class="btn-primary" id="btnSaveProduct"><i class="fas fa-save"></i> Salvar Produto</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modalCheckout" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Finalizar Venda</h2>
+                <span class="close" onclick="hide('modalCheckout')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <h3>Dados do Cliente (Opcional)</h3>
+                <label for="cust_name">Nome:</label>
+                <input type="text" id="cust_name" placeholder="Consumidor Final">
+                
+                <label for="cust_cpf">CPF/CNPJ:</label>
+                <input type="text" id="cust_cpf" placeholder="000.000.000-00">
+
+                <h3>Ajustes Finais</h3>
+                <label for="discount">Desconto (R$):</label>
+                <input type="text" id="discount" value="0,00" placeholder="0,00">
+                
+                <label for="additional_value">Acréscimo/Taxa (R$):</label>
+                <input type="text" id="additional_value" value="0,00" placeholder="0,00">
+
+                <label for="sale_notes">Observações da Venda:</label>
+                <textarea id="sale_notes" rows="2"></textarea>
+                
+                <label for="payment_method">Forma de Pagamento:</label>
+                <select id="payment_method" required>
+                    <option value="">-- Selecione --</option>
+                    <option value="Dinheiro">Dinheiro</option>
+                    <option value="Cartão Débito">Cartão Débito</option>
+                    <option value="Cartão Crédito">Cartão Crédito</option>
+                    <option value="Pix">Pix</option>
+                    <option value="Transferência">Transferência</option>
+                </select>
+                
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="hide('modalCheckout')">Voltar</button>
+                <button class="btn-success" id="modalCheckoutConfirm"><i class="fas fa-check-circle"></i> Confirmar Venda</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modalStore" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Configurações da Loja</h2>
+                <span class="close" onclick="hide('modalStore')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <h3>Dados de Emissão (Recibo)</h3>
+                <label for="configRazaoSocial">Razão Social:</label>
+                <input type="text" id="configRazaoSocial" required>
+                
+                <label for="configNomeFantasia">Nome Fantasia:</label>
+                <input type="text" id="configNomeFantasia">
+
+                <label for="configCNPJ">CNPJ:</label>
+                <input type="text" id="configCNPJ" required>
+
+                <label for="configEndereco">Endereço:</label>
+                <input type="text" id="configEndereco">
+                
+                <label for="configTelefone">Telefone:</label>
+                <input type="text" id="configTelefone">
+
+                <label for="configRegime">Regime Tributário (Ex: Simples Nacional):</label>
+                <select id="configRegime">
+                    <option value="Simples Nacional">Simples Nacional</option>
+                    <option value="MEI">MEI</option>
+                    <option value="Lucro Presumido">Lucro Presumido</option>
+                </select>
+
+                <label for="store_logo_upload">Logo (para Recibo - Imagem):</label>
+                <input type="file" id="store_logo_upload" accept="image/*">
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="hide('modalStore')">Cancelar</button>
+                <button class="btn-primary" id="btnStoreSave"><i class="fas fa-save"></i> Salvar Configurações</button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+    <script src="js/site.js"></script> 
+    <script src="js/dashboard.js"></script>
+
 </body>
 </html>

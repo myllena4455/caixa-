@@ -3,11 +3,11 @@
 const express = require('express');
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
-const bcrypt = require('bcrypt'); // Biblioteca para criptografia de senha (Requer npm install bcrypt)
+const bcrypt = require('bcrypt'); // Requer npm install bcrypt
 
 const app = express();
 const PORT = 3000;
-const SALT_ROUNDS = 10; // Custo de criptografia para o bcrypt
+const SALT_ROUNDS = 10; 
 
 // Configuração do Banco de Dados SQLite
 const db = new sqlite3.Database(path.join(__dirname, 'database.sqlite'), (err) => {
@@ -16,7 +16,7 @@ const db = new sqlite3.Database(path.join(__dirname, 'database.sqlite'), (err) =
     } else {
         console.log('✅ Conectado ao banco de dados SQLite.');
         
-        // 1. Tabela de USUÁRIOS para Login
+        // 1. Tabela de USUÁRIOS para Login (SQL CLEAN)
         db.run(`CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
@@ -24,7 +24,7 @@ const db = new sqlite3.Database(path.join(__dirname, 'database.sqlite'), (err) =
             password_hash TEXT NOT NULL
         )`);
         
-        // 2. Tabela de Configurações da Loja
+        // 2. Tabela de Configurações da Loja (SQL CLEAN)
         db.run(`CREATE TABLE IF NOT EXISTS store_config (
             id INTEGER PRIMARY KEY,
             razao_social TEXT,
@@ -36,7 +36,7 @@ const db = new sqlite3.Database(path.join(__dirname, 'database.sqlite'), (err) =
             logo_path TEXT
         )`);
         
-        // 3. Tabela de Vendas (Exemplo)
+        // 3. Tabela de Vendas (SQL CLEAN)
         db.run(`CREATE TABLE IF NOT EXISTS sales (
             id TEXT PRIMARY KEY,
             sale_date TEXT,
@@ -46,22 +46,19 @@ const db = new sqlite3.Database(path.join(__dirname, 'database.sqlite'), (err) =
     }
 });
 
-// Middleware: Permite que o servidor processe dados JSON e formulários
+// Middleware
 app.use(express.json()); 
 app.use(express.urlencoded({ extended: true })); 
 
 // ==========================================================
-// 🚨 ROTA DE REDIRECIONAMENTO INICIAL (FORÇA O LOGIN)
-// Esta rota deve ser a primeira a ser configurada!
-// Se o usuário acessar http://localhost:3000/, ele vai para a tela de login.
+// ROTA DE REDIRECIONAMENTO INICIAL (PARA O LOGIN)
 // ==========================================================
 app.get('/', (req, res) => {
-    // Redireciona para o arquivo login.html na pasta raiz (um nível acima de 'backend')
+    // Redireciona para o arquivo login.html
     res.sendFile(path.join(__dirname, '..', 'login.html'));
 });
 
-// Serve arquivos estáticos (CSS, JS, imagens, e outros HTMLs como index.html)
-// a partir da raiz do projeto (um nível acima de 'backend')
+// Serve arquivos estáticos (CSS, JS, imagens)
 app.use(express.static(path.join(__dirname, '..'))); 
 
 // ==========================================================
@@ -89,7 +86,40 @@ app.post('/api/auth/register', async (req, res) => {
         res.status(500).json({ message: 'Erro ao criptografar senha.' });
     }
 });
+// CÓDIGO DENTRO DE backend/server.js (Adicione a Rota de Vendas)
 
+// ==========================================================
+// ROTA: Finalizar Venda (POST)
+// ==========================================================
+app.post('/api/vendas/finalizar', (req, res) => {
+    const { total, items, payment_method } = req.body;
+    
+    if (!total || !items || items.length === 0 || !payment_method) {
+        return res.status(400).json({ message: 'Dados de venda incompletos.' });
+    }
+
+    // Gerar um ID único simples para a venda (ex: timestamp + número aleatório)
+    const saleId = `VENDA-${Date.now()}`;
+    const saleDate = new Date().toISOString();
+
+    // 1. Inserir a venda principal na tabela `sales`
+    const sqlSale = `INSERT INTO sales (id, sale_date, total, payment_method) VALUES (?, ?, ?, ?)`;
+    db.run(sqlSale, [saleId, saleDate, total, payment_method], function(err) {
+        if (err) {
+            console.error('Erro ao salvar venda:', err.message);
+            return res.status(500).json({ message: 'Falha ao salvar a venda principal no banco de dados.' });
+        }
+        
+        // 🚨 OBS: Para salvar os 'items' da venda, você precisaria de uma tabela `sale_items`.
+        // Por enquanto, apenas confirmamos a venda principal para avançar.
+        
+        console.log(`✅ Venda finalizada. ID: ${saleId}`);
+        res.status(201).json({ 
+            message: `Venda ${saleId} concluída com sucesso.`, 
+            saleId: saleId 
+        });
+    });
+});
 // ==========================================================
 // ROTA: Login
 // ==========================================================
@@ -147,7 +177,6 @@ app.post('/api/loja/configurar', (req, res) => {
 // ROTA: Dashboard KPIs (GET - Mockada)
 // ==========================================================
 app.get('/api/dashboard/kpis', (req, res) => {
-    // MOCK DATA (Ainda não busca dados reais de sales/products)
     const mockData = {
         faturamentoHoje: 1852.50,
         ticketMedio: 123.50,
