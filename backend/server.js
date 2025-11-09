@@ -3,7 +3,7 @@
 const express = require('express');
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
-const bcrypt = require('bcrypt'); // Requer npm install bcrypt
+const bcrypt = require('bcrypt'); 
 
 const app = express();
 const PORT = 3000;
@@ -16,7 +16,7 @@ const db = new sqlite3.Database(path.join(__dirname, 'database.sqlite'), (err) =
     } else {
         console.log('✅ Conectado ao banco de dados SQLite.');
         
-        // 1. Tabela de USUÁRIOS para Login (SQL CLEAN)
+        // 1. Tabela de USUÁRIOS
         db.run(`CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
@@ -24,7 +24,7 @@ const db = new sqlite3.Database(path.join(__dirname, 'database.sqlite'), (err) =
             password_hash TEXT NOT NULL
         )`);
         
-        // 2. Tabela de Configurações da Loja (SQL CLEAN)
+        // 2. Tabela de Configurações da Loja
         db.run(`CREATE TABLE IF NOT EXISTS store_config (
             id INTEGER PRIMARY KEY,
             razao_social TEXT,
@@ -36,12 +36,14 @@ const db = new sqlite3.Database(path.join(__dirname, 'database.sqlite'), (err) =
             logo_path TEXT
         )`);
         
-        // 3. Tabela de Vendas (SQL CLEAN)
+        // 3. Tabela de Vendas (Para contabilização e relatório)
         db.run(`CREATE TABLE IF NOT EXISTS sales (
             id TEXT PRIMARY KEY,
             sale_date TEXT,
             total REAL,
-            payment_method TEXT
+            payment_method TEXT,
+            customer_name TEXT,
+            customer_cpf TEXT
         )`);
     }
 });
@@ -54,7 +56,6 @@ app.use(express.urlencoded({ extended: true }));
 // ROTA DE REDIRECIONAMENTO INICIAL (PARA O LOGIN)
 // ==========================================================
 app.get('/', (req, res) => {
-    // Redireciona para o arquivo login.html
     res.sendFile(path.join(__dirname, '..', 'login.html'));
 });
 
@@ -62,7 +63,7 @@ app.get('/', (req, res) => {
 app.use(express.static(path.join(__dirname, '..'))); 
 
 // ==========================================================
-// ROTA: Cadastro (REGISTER)
+// ROTA: Cadastro e Login
 // ==========================================================
 app.post('/api/auth/register', async (req, res) => {
     const { name, email, password } = req.body;
@@ -77,7 +78,6 @@ app.post('/api/auth/register', async (req, res) => {
                 if (err.message.includes('UNIQUE constraint failed')) {
                     return res.status(409).json({ message: 'E-mail já cadastrado.' });
                 }
-                console.error('Erro ao cadastrar usuário:', err.message);
                 return res.status(500).json({ message: 'Erro interno ao tentar cadastrar.' });
             }
             res.status(201).json({ message: 'Usuário cadastrado com sucesso!' });
@@ -86,63 +86,17 @@ app.post('/api/auth/register', async (req, res) => {
         res.status(500).json({ message: 'Erro ao criptografar senha.' });
     }
 });
-// CÓDIGO DENTRO DE backend/server.js (Adicione a Rota de Vendas)
 
-// ==========================================================
-// ROTA: Finalizar Venda (POST)
-// ==========================================================
-app.post('/api/vendas/finalizar', (req, res) => {
-    const { total, items, payment_method } = req.body;
-    
-    if (!total || !items || items.length === 0 || !payment_method) {
-        return res.status(400).json({ message: 'Dados de venda incompletos.' });
-    }
-
-    // Gerar um ID único simples para a venda (ex: timestamp + número aleatório)
-    const saleId = `VENDA-${Date.now()}`;
-    const saleDate = new Date().toISOString();
-
-    // 1. Inserir a venda principal na tabela `sales`
-    const sqlSale = `INSERT INTO sales (id, sale_date, total, payment_method) VALUES (?, ?, ?, ?)`;
-    db.run(sqlSale, [saleId, saleDate, total, payment_method], function(err) {
-        if (err) {
-            console.error('Erro ao salvar venda:', err.message);
-            return res.status(500).json({ message: 'Falha ao salvar a venda principal no banco de dados.' });
-        }
-        
-        // 🚨 OBS: Para salvar os 'items' da venda, você precisaria de uma tabela `sale_items`.
-        // Por enquanto, apenas confirmamos a venda principal para avançar.
-        
-        console.log(`✅ Venda finalizada. ID: ${saleId}`);
-        res.status(201).json({ 
-            message: `Venda ${saleId} concluída com sucesso.`, 
-            saleId: saleId 
-        });
-    });
-});
-// ==========================================================
-// ROTA: Login
-// ==========================================================
 app.post('/api/auth/login', (req, res) => {
     const { email, password } = req.body;
-    if (!email || !password) {
-        return res.status(400).json({ message: 'Email e senha são obrigatórios.' });
-    }
     const sql = `SELECT * FROM users WHERE email = ?`;
     db.get(sql, [email], async (err, user) => {
-        if (err) {
-            console.error('Erro ao buscar usuário:', err.message);
-            return res.status(500).json({ message: 'Erro interno do servidor.' });
-        }
         if (!user) {
             return res.status(401).json({ message: 'Usuário não encontrado.' });
         }
         const match = await bcrypt.compare(password, user.password_hash);
         if (match) {
-            res.status(200).json({ 
-                message: 'Login bem-sucedido!',
-                user: { id: user.id, name: user.name, email: user.email }
-            });
+            res.status(200).json({ message: 'Login bem-sucedido!', user: { id: user.id, name: user.name, email: user.email }});
         } else {
             res.status(401).json({ message: 'Senha incorreta.' });
         }
@@ -150,31 +104,70 @@ app.post('/api/auth/login', (req, res) => {
 });
 
 // ==========================================================
-// ROTA: Configuração da Loja (POST)
+// ROTA: Configurações da Loja
 // ==========================================================
 app.post('/api/loja/configurar', (req, res) => {
-    const data = req.body;
-    const { razao_social, nome_fantasia, cnpj, endereco, telefone, regime_tributario } = data;
-    if (!cnpj || !razao_social) {
-        return res.status(400).json({ message: 'CNPJ e Razão Social são obrigatórios.' });
-    }
-    const sql = `
-        INSERT OR REPLACE INTO store_config (id, razao_social, nome_fantasia, cnpj, endereco, telefone, regime_tributario) 
-        VALUES (1, ?, ?, ?, ?, ?, ?)
-    `;
+    const { razao_social, nome_fantasia, cnpj, endereco, telefone, regime_tributario } = req.body;
+    const sql = `INSERT OR REPLACE INTO store_config (id, razao_social, nome_fantasia, cnpj, endereco, telefone, regime_tributario) VALUES (1, ?, ?, ?, ?, ?, ?)`;
     const params = [razao_social, nome_fantasia, cnpj, endereco, telefone, regime_tributario];
     db.run(sql, params, function(err) {
         if (err) {
             console.error('Erro ao salvar no DB:', err.message);
-            return res.status(500).json({ message: 'Falha ao salvar a configuração no banco de dados.' });
+            return res.status(500).json({ message: 'Falha ao salvar a configuração.' });
         }
-        console.log(`✅ Configuração da loja salva/atualizada. ID: ${this.lastID || 1}`);
         res.status(200).json({ message: 'Configuração salva com sucesso!' });
     });
 });
 
+app.get('/api/loja/configuracao', (req, res) => {
+    const sql = `SELECT * FROM store_config WHERE id = 1`;
+    db.get(sql, [], (err, row) => {
+        if (!row) {
+            return res.status(404).json({ message: 'Configuração não encontrada.', data: {} });
+        }
+        res.status(200).json({ data: row });
+    });
+});
+
 // ==========================================================
-// ROTA: Dashboard KPIs (GET - Mockada)
+// ROTA: Finalizar Venda (SAVE) - NOVO E ESSENCIAL
+// ==========================================================
+app.post('/api/sales/finish', (req, res) => {
+    const { total, payment_method, customer_name, customer_cpf } = req.body;
+    
+    const sale_id = 'VENDA-' + Date.now();
+    const sale_date = new Date().toISOString();
+
+    const sql = `INSERT INTO sales (id, sale_date, total, payment_method, customer_name, customer_cpf) VALUES (?, ?, ?, ?, ?, ?)`;
+    
+    db.run(sql, [sale_id, sale_date, total, payment_method, customer_name, customer_cpf], function(err) {
+        if (err) {
+            console.error('Erro ao registrar a venda:', err.message);
+            return res.status(500).json({ message: 'Falha ao registrar a venda.' });
+        }
+        console.log(`✅ Venda registrada! ID: ${sale_id}`);
+        res.status(200).json({ message: 'Venda finalizada com sucesso!', sale_id: sale_id });
+    });
+});
+
+// ==========================================================
+// ROTA: Buscar Vendas (Para Relatório)
+// ==========================================================
+app.get('/api/sales/daily', (req, res) => {
+    // Busca todas as vendas registradas
+    const sql = `SELECT * FROM sales ORDER BY sale_date DESC`;
+    
+    db.all(sql, [], (err, rows) => {
+        if (err) {
+            console.error('Erro ao buscar vendas diárias:', err.message);
+            return res.status(500).json({ message: 'Falha ao buscar dados de vendas.' });
+        }
+        res.status(200).json({ sales: rows });
+    });
+});
+
+// ==========================================================
+// ROTAS MOCK (Dashboard KPIs)
 // ==========================================================
 app.get('/api/dashboard/kpis', (req, res) => {
     const mockData = {
