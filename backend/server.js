@@ -1,4 +1,4 @@
-// backend/server.js
+// server.js
 
 const express = require('express');
 const sqlite3 = require('sqlite3').verbose();
@@ -24,63 +24,90 @@ const db = new sqlite3.Database(path.join(__dirname, 'database.sqlite'), (err) =
             password_hash TEXT NOT NULL
         )`);
         
-        // 2. Tabela de Configurações da Loja
-        db.run(`CREATE TABLE IF NOT EXISTS store_config (
-            id INTEGER PRIMARY KEY,
-            razao_social TEXT,
-            nome_fantasia TEXT,
-            cnpj TEXT UNIQUE,
-            endereco TEXT,
-            telefone TEXT,
-            regime_tributario TEXT,
-            logo_path TEXT
+        // 2. Tabela de PRODUTOS (ESTOQUE)
+        db.run(`CREATE TABLE IF NOT EXISTS products (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            price REAL NOT NULL,
+            stock INTEGER NOT NULL
         )`);
         
-        // 3. Tabela de Vendas (Para contabilização e relatório)
+        // 3. Tabela de VENDAS (CONTABILIZAÇÃO)
         db.run(`CREATE TABLE IF NOT EXISTS sales (
             id TEXT PRIMARY KEY,
             sale_date TEXT,
             total REAL,
-            payment_method TEXT,
-            customer_name TEXT,
-            customer_cpf TEXT
+            payment_method TEXT
+        )`);
+
+        // 4. Tabela de ITENS DA VENDA (Detalhamento)
+        db.run(`CREATE TABLE IF NOT EXISTS sale_items (
+            sale_id TEXT,
+            product_id TEXT,
+            quantity INTEGER,
+            price_unit REAL,
+            PRIMARY KEY (sale_id, product_id),
+            FOREIGN KEY(sale_id) REFERENCES sales(id),
+            FOREIGN KEY(product_id) REFERENCES products(id)
         )`);
     }
 });
 
 // Middleware
-app.use(express.json()); 
+// Garante colunas extras na tabela de vendas (idempotente)
+db.serialize(() => {
+    db.get("PRAGMA table_info(sales);", [], (err, row) => {});
+    db.all("PRAGMA table_info(sales);", [], (err, rows) => {
+        if (!rows) return;
+        const cols = rows.map(r => r.name);
+        const add = [];
+        if (!cols.includes('discount')) add.push("ALTER TABLE sales ADD COLUMN discount REAL DEFAULT 0");
+        if (!cols.includes('additional')) add.push("ALTER TABLE sales ADD COLUMN additional REAL DEFAULT 0");
+        if (!cols.includes('notes')) add.push("ALTER TABLE sales ADD COLUMN notes TEXT");
+    if (!cols.includes('customer_name')) add.push("ALTER TABLE sales ADD COLUMN customer_name TEXT");
+    if (!cols.includes('customer_cpf')) add.push("ALTER TABLE sales ADD COLUMN customer_cpf TEXT");
+        add.forEach(sql => db.run(sql, ()=>{}));
+    });
+});
+// Middleware
+app.use(express.json());
+// Garantir colunas extras na tabela users (dados da loja)
+db.serialize(() => {
+    db.all("PRAGMA table_info(users);", [], (err, rows) => {
+        if (!rows) return;
+        const cols = rows.map(r => r.name);
+        const add = [];
+        if (!cols.includes('owner_name')) add.push("ALTER TABLE users ADD COLUMN owner_name TEXT");
+        if (!cols.includes('cnpj')) add.push("ALTER TABLE users ADD COLUMN cnpj TEXT");
+        if (!cols.includes('address')) add.push("ALTER TABLE users ADD COLUMN address TEXT");
+        add.forEach(sql => db.run(sql, ()=>{}));
+    });
+}); 
 app.use(express.urlencoded({ extended: true })); 
+app.use(express.static(path.join(__dirname, '..'))); 
 
 // ==========================================================
 // ROTA DE REDIRECIONAMENTO INICIAL (PARA O LOGIN)
 // ==========================================================
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, '..', 'login.html'));
+    res.sendFile(path.join(__dirname, '..', 'ilogin.html'));
 });
-
-// Serve arquivos estáticos (CSS, JS, imagens)
-app.use(express.static(path.join(__dirname, '..'))); 
 
 // ==========================================================
 // ROTA: Cadastro e Login
 // ==========================================================
-app.post('/api/auth/register', async (req, res) => {
-    const { name, email, password } = req.body;
-    if (!name || !email || !password) {
-        return res.status(400).json({ message: 'Todos os campos são obrigatórios para o cadastro.' });
-    }
+app.post('/api/auth/register', async (req, res) => { const { name, email, password, owner_name = '', cnpj = '', address = '' } = req.body;
     try {
         const password_hash = await bcrypt.hash(password, SALT_ROUNDS);
-        const sql = `INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)`;
-        db.run(sql, [name, email, password_hash], function(err) {
+        const sql = `INSERT INTO users (name, email, password_hash, owner_name, cnpj, address) VALUES (?, ?, ?, ?, ?, ?)`;
+        db.run(sql, [name, email, password_hash, owner_name, cnpj, address], function(err) {
             if (err) {
                 if (err.message.includes('UNIQUE constraint failed')) {
                     return res.status(409).json({ message: 'E-mail já cadastrado.' });
                 }
                 return res.status(500).json({ message: 'Erro interno ao tentar cadastrar.' });
             }
-            res.status(201).json({ message: 'Usuário cadastrado com sucesso!' });
+            res.status(201).json({ message: 'Usuário cadastrado com sucesso! Faça Login.' });
         });
     } catch (error) {
         res.status(500).json({ message: 'Erro ao criptografar senha.' });
@@ -96,7 +123,7 @@ app.post('/api/auth/login', (req, res) => {
         }
         const match = await bcrypt.compare(password, user.password_hash);
         if (match) {
-            res.status(200).json({ message: 'Login bem-sucedido!', user: { id: user.id, name: user.name, email: user.email }});
+            res.status(200).json({ message: 'Login bem-sucedido!' });
         } else {
             res.status(401).json({ message: 'Senha incorreta.' });
         }
@@ -104,85 +131,130 @@ app.post('/api/auth/login', (req, res) => {
 });
 
 // ==========================================================
-// ROTA: Configurações da Loja
+// ROTA: CRUD de Produtos (Estoque)
 // ==========================================================
-app.post('/api/loja/configurar', (req, res) => {
-    const { razao_social, nome_fantasia, cnpj, endereco, telefone, regime_tributario } = req.body;
-    const sql = `INSERT OR REPLACE INTO store_config (id, razao_social, nome_fantasia, cnpj, endereco, telefone, regime_tributario) VALUES (1, ?, ?, ?, ?, ?, ?)`;
-    const params = [razao_social, nome_fantasia, cnpj, endereco, telefone, regime_tributario];
-    db.run(sql, params, function(err) {
-        if (err) {
-            console.error('Erro ao salvar no DB:', err.message);
-            return res.status(500).json({ message: 'Falha ao salvar a configuração.' });
-        }
-        res.status(200).json({ message: 'Configuração salva com sucesso!' });
+// GET todos os produtos
+app.get('/api/products', (req, res) => {
+    const sql = `SELECT * FROM products ORDER BY name`;
+    db.all(sql, [], (err, rows) => {
+        if (err) return res.status(500).json({ message: 'Erro ao buscar produtos.', error: err.message });
+        res.status(200).json({ products: rows });
     });
 });
 
-app.get('/api/loja/configuracao', (req, res) => {
-    const sql = `SELECT * FROM store_config WHERE id = 1`;
-    db.get(sql, [], (err, row) => {
-        if (!row) {
-            return res.status(404).json({ message: 'Configuração não encontrada.', data: {} });
-        }
-        res.status(200).json({ data: row });
+// POST ou PUT (Cria/Atualiza produto)
+app.post('/api/products', (req, res) => {
+    const { id, name, price, stock } = req.body;
+    if (!id || !name || price == null || stock == null) {
+        return res.status(400).json({ message: 'Dados incompletos do produto.' });
+    }
+    // INSERT OR REPLACE: Se o ID já existir, atualiza; senão, insere.
+    const sql = `INSERT OR REPLACE INTO products (id, name, price, stock) VALUES (?, ?, ?, ?)`;
+    db.run(sql, [id, name, price, stock], function(err) {
+        if (err) return res.status(500).json({ message: 'Erro ao salvar produto.', error: err.message });
+        res.status(200).json({ message: 'Produto salvo com sucesso!', id: id });
     });
 });
 
+// DELETE produto
+app.delete('/api/products/:id', (req, res) => {
+    const { id } = req.params;
+    const sql = `DELETE FROM products WHERE id = ?`;
+    db.run(sql, [id], function(err) {
+        if (err) return res.status(500).json({ message: 'Erro ao deletar produto.', error: err.message });
+        if (this.changes === 0) return res.status(404).json({ message: 'Produto não encontrado.' });
+        res.status(200).json({ message: 'Produto deletado com sucesso!' });
+    });
+});
+
+
 // ==========================================================
-// ROTA: Finalizar Venda (SAVE) - NOVO E ESSENCIAL
+// ROTA: Finalizar Venda (SAVE e Baixa de Estoque)
 // ==========================================================
+
 app.post('/api/sales/finish', (req, res) => {
-    const { total, payment_method, customer_name, customer_cpf } = req.body;
+    const { total, payment_method, cart_items, discount = 0, additional = 0, notes = '', customer_name = '', customer_cpf = '' } = req.body;
     
+    if (total == null || !payment_method || !Array.isArray(cart_items) || cart_items.length === 0) {
+        return res.status(400).json({ message: 'Dados incompletos para finalizar a venda.' });
+    }
+
     const sale_id = 'VENDA-' + Date.now();
     const sale_date = new Date().toISOString();
 
-    const sql = `INSERT INTO sales (id, sale_date, total, payment_method, customer_name, customer_cpf) VALUES (?, ?, ?, ?, ?, ?)`;
-    
-    db.run(sql, [sale_id, sale_date, total, payment_method, customer_name, customer_cpf], function(err) {
-        if (err) {
-            console.error('Erro ao registrar a venda:', err.message);
-            return res.status(500).json({ message: 'Falha ao registrar a venda.' });
-        }
-        console.log(`✅ Venda registrada! ID: ${sale_id}`);
-        res.status(200).json({ message: 'Venda finalizada com sucesso!', sale_id: sale_id });
+    db.serialize(() => {
+        db.run("BEGIN TRANSACTION;");
+
+        const saleSql = `INSERT INTO sales (id, sale_date, total, payment_method, discount, additional, notes, customer_name, customer_cpf) 
+                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+        db.run(saleSql, [sale_id, sale_date, total, payment_method, discount, additional, notes, customer_name, customer_cpf], (err) => {
+            if (err) {
+                db.run("ROLLBACK;");
+                return res.status(500).json({ message: 'Erro ao registrar a venda.', error: err.message });
+            }
+
+            const itemSql = `INSERT INTO sale_items (sale_id, product_id, quantity, price_unit) VALUES (?, ?, ?, ?)`;
+
+            let hadError = false;
+            for (const item of cart_items) {
+                db.run(itemSql, [sale_id, item.id, item.qty, item.price], (err2) => {
+                    if (err2 && !hadError) {
+                        hadError = true;
+                        db.run("ROLLBACK;");
+                        return res.status(500).json({ message: `Erro ao registrar item ${item.id}.`, error: err2.message });
+                    }
+                });
+
+                const stockSql = `UPDATE products SET stock = stock - ? WHERE id = ? AND stock >= ?`;
+                db.run(stockSql, [item.qty, item.id, item.qty], function(err3) {
+                    if ((err3 || this.changes === 0) && !hadError) {
+                        hadError = true;
+                        db.run("ROLLBACK;");
+                        return res.status(500).json({ message: `Erro: Estoque insuficiente para ${item.id}.`, error: err3 ? err3.message : 'Estoque insuficiente' });
+                    }
+                });
+            }
+
+            db.run("COMMIT;", (err4) => {
+                if (err4) {
+                    return res.status(500).json({ message: 'Erro ao finalizar a transação.', error: err4.message });
+                }
+                db.get("SELECT owner_name, cnpj, address FROM users ORDER BY rowid DESC LIMIT 1", [], (e2, storeRow) => {
+                    res.status(200).json({ 
+                        message: 'Venda finalizada com sucesso! Estoque atualizado.',
+                        sale_id: sale_id,
+                        sale_details: { 
+                            total, payment_method, discount, additional, notes, customer_name, customer_cpf,
+                            cart_items, sale_date,
+                            store: storeRow || {}
+                        } 
+                    });
+                });
+            });
+        });
     });
 });
 
+
+
 // ==========================================================
-// ROTA: Buscar Vendas (Para Relatório)
+// ROTA: Relatório de Vendas (Consulta)
 // ==========================================================
-app.get('/api/sales/daily', (req, res) => {
-    // Busca todas as vendas registradas
+app.get('/api/sales/report', (req, res) => {
+    // Consulta para buscar todas as vendas
     const sql = `SELECT * FROM sales ORDER BY sale_date DESC`;
     
     db.all(sql, [], (err, rows) => {
         if (err) {
-            console.error('Erro ao buscar vendas diárias:', err.message);
-            return res.status(500).json({ message: 'Falha ao buscar dados de vendas.' });
+            return res.status(500).json({ message: 'Falha ao buscar dados de vendas.', error: err.message });
         }
         res.status(200).json({ sales: rows });
     });
-});
-
-// ==========================================================
-// ROTAS MOCK (Dashboard KPIs)
-// ==========================================================
-app.get('/api/dashboard/kpis', (req, res) => {
-    const mockData = {
-        faturamentoHoje: 1852.50,
-        ticketMedio: 123.50,
-        estoqueCritico: 8,
-        clientesCadastrados: 45
-    };
-    res.json(mockData);
 });
 
 
 // Inicia o servidor
 app.listen(PORT, () => {
     console.log(`\n🚀 Servidor Node.js rodando em http://localhost:${PORT}`);
-    console.log(`🔗 Acesse o Login em: http://localhost:${PORT}/`); 
-    console.log(`🔗 Acesse o PDV (Caixa) em: http://localhost:${PORT}/index.html\n`);
+    console.log(`🔗 Acesse o Login em: http://localhost:${PORT}/\n`);
 });
