@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - caixa registradora</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link rel="stylesheet" href="css/estilos.css">
+</head>
+<body class="login-body">
+    <div id="customAlert" class="custom-alert-overlay">
+        <div class="custom-alert-box">
+            <div id="alertIcon" class="custom-alert-icon"></div>
+            <h3 id="alertTitle"></h3>
+            <p id="alertMessage"></p>
+            <button id="alertCloseBtn" class="btn-primary">OK</button>
+        </div>
+    </div>
+
+    <div class="login-container">
+        <h1><i class="fas fa-cash-register"></i> caixa registradora</h1>
+        <p class="subtitle" id="form-subtitle">Autenticação de Usuário</p>
+        
+        <div class="login-box card" id="loginForm">
+            <form id="authForm">
+                <input type="text" id="name" placeholder="Nome Completo (Apenas Cadastro)" style="display: none;">
+
+                <label for="email"><i class="fas fa-envelope"></i> E-mail</label>
+                <input type="email" id="email" placeholder="seu@email.com" required>
+
+                <label for="password"><i class="fas fa-lock"></i> Senha</label>
+                <input type="password" id="password" placeholder="Mínimo 6 caracteres" required>
+<div id="storeFields" style="display:none; margin-top:8px;">
+    <input type="text" id="storeName" placeholder="Nome da Loja (apenas cadastro)">
+  <input type="text" id="storeOwner" placeholder="Nome do Proprietário (apenas cadastro)">
+    <input type="text" id="storePhone" placeholder="Telefone da Loja (apenas cadastro)">
+  <input type="text" id="storeCNPJ" placeholder="CNPJ (somente números)">
+  <input type="text" id="storeAddress" placeholder="Endereço completo da loja">
+</div>
+
+                <button type="submit" class="btn-primary" id="submitBtn"><i class="fas fa-sign-in-alt"></i> Entrar</button>
+            </form>
+            
+            <p class="form-switch">
+                Não tem conta? <a href="#" id="switchToRegister">Cadastre-se</a>
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // --- Funções de Alerta e Display ---
+        function thematicAlert(title, message, type) {
+            const alertBox = document.getElementById('customAlert');
+            document.getElementById('alertTitle').textContent = title;
+            document.getElementById('alertMessage').textContent = message;
+            alertBox.style.display = 'flex';
+        }
+        document.getElementById('alertCloseBtn').onclick = () => {
+            document.getElementById('customAlert').style.display = 'none';
+        };
+
+        let isRegister = false;
+        const nameField = document.getElementById('name');
+        const submitBtn = document.getElementById('submitBtn');
+        const subtitle = document.getElementById('form-subtitle');
+        const switchLink = document.getElementById('switchToRegister');
+        const storeFields = document.getElementById('storeFields');
+
+        switchLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            isRegister = !isRegister;
+            nameField.style.display = isRegister ? 'block' : 'none';
+            if (storeFields) {
+                storeFields.style.display = isRegister ? 'block' : 'none';
+                // Define campos como required apenas no modo de registro
+                const f = ['storeName','storeOwner','storePhone','storeCNPJ','storeAddress'];
+                f.forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.required = isRegister;
+                });
+            }
+            submitBtn.textContent = isRegister ? ' Cadastrar' : ' Entrar';
+            subtitle.textContent = isRegister ? 'Crie sua conta' : 'Autenticação de Usuário';
+            switchLink.textContent = isRegister ? 'Voltar para o Login' : 'Cadastre-se';
+        });
+
+        document.getElementById('authForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const name = nameField.value;
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            // Validação extra quando for registro: campos da loja obrigatórios
+            if (isRegister) {
+                const storeName = document.getElementById('storeName')?.value?.trim() || '';
+                const storePhone = document.getElementById('storePhone')?.value?.trim() || '';
+                if (!storeName) return thematicAlert('Erro', 'Informe o nome da loja.', 'error');
+                if (!storePhone) return thematicAlert('Erro', 'Informe o telefone da loja.', 'error');
+            }
+
+            const endpoint = isRegister ? '/api/auth/register' : '/api/auth/login';
+            const data = isRegister ? {
+    name, email, password,
+    store_name: document.getElementById('storeName')?.value?.trim() || '',
+    owner_name: document.getElementById('storeOwner')?.value?.trim() || '',
+    store_phone: document.getElementById('storePhone')?.value?.trim() || '',
+    cnpj: (document.getElementById('storeCNPJ')?.value || '').replace(/\D/g,''),
+    address: document.getElementById('storeAddress')?.value?.trim() || ''
+} : { email, password };
+
+            try {
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    thematicAlert('Sucesso!', result.message, 'success');
+                    // Se foi um cadastro, persiste algumas infos da loja em localStorage para uso nos recibos
+                    if (isRegister) {
+                        try {
+                            const storeName = document.getElementById('storeName')?.value?.trim() || '';
+                            const owner = document.getElementById('storeOwner')?.value?.trim() || '';
+                            const phone = document.getElementById('storePhone')?.value?.trim() || '';
+                            const cnpj = (document.getElementById('storeCNPJ')?.value || '').replace(/\D/g,'');
+                            const address = document.getElementById('storeAddress')?.value?.trim() || '';
+                            if (storeName) localStorage.setItem('store_name', storeName);
+                            if (owner) localStorage.setItem('store_owner', owner);
+                            if (phone) localStorage.setItem('store_phone', phone);
+                            if (cnpj) localStorage.setItem('store_cnpj', cnpj);
+                            if (address) localStorage.setItem('store_address', address);
+                        } catch (e) { console.warn('Não foi possível salvar dados da loja localmente', e); }
+                        // Depois do cadastro, permanece na tela de login (usuário pode fazer login)
+                    } else {
+                        // Redireciona para o PDV principal após o login
+                        window.location.href = 'index.html'; 
+                    }
+                } else {
+                    thematicAlert('Erro de Autenticação', result.message || 'Verifique suas credenciais.', 'error');
+                }
+            } catch (error) {
+                thematicAlert('Erro de Conexão', 'Não foi possível conectar ao servidor.', 'error');
+                console.error('Erro de conexão:', error);
+            }
+        });
+    </script>
+</body>
+</html>

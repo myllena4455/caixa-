@@ -1,0 +1,38 @@
+{
+  "name": "lk-imports",
+  "version": "1.0.0",
+  "description": "Sistema de PDV LK Imports - empacotado com Electron",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder",
+    "install-app-deps": "electron-builder install-app-deps"
+  },
+  "build": {
+    "appId": "com.lkimports.pdv",
+    "productName": "LK Imports PDV",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "assets/icon.ico"
+    },
+    "files": [
+      "**/*",
+      "!dist/*",
+      "!build/*"
+    ]
+  },
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "electron-is-dev": "^2.0.0",
+    "express": "^5.1.0",
+    "sqlite3": "^5.1.7"
+  },
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "electron-builder": "^24.9.1",
+    "electron-rebuild": "^3.2.9"
+  }
+}

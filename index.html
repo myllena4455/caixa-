@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Caixa  - Vendas e Estoque</title>
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link rel="stylesheet" href="css/estilos.css">
+</head>
+<body>
+
+    <!-- MODAL DE ALERTA -->
+    <div id="customAlert" class="custom-alert-overlay">
+        <div class="custom-alert-box">
+            <div id="alertIcon" class="custom-alert-icon"></div>
+            <h3 id="alertTitle"></h3>
+            <p id="alertMessage"></p>
+            <button id="alertCloseBtn" class="btn-primary">OK</button>
+        </div>
+    </div>
+    
+    <!-- MODAL DE CHECKOUT -->
+    <div id="modalCheckout" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Finalizar Venda</h2>
+                <span class="close" onclick="hide('modalCheckout')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="checkout-summary">
+                    <strong>Total a Pagar:</strong> 
+                    <span id="checkoutTotalValue" class="total-value-checkout">R$ 0,00</span>
+                </div>
+
+                <label for="payment_method">Forma de Pagamento:</label>
+                <select id="payment_method" required>
+                    <option value="">-- Selecione --</option>
+                    <option value="Dinheiro">Dinheiro</option>
+                    <option value="Cartão Débito">Cartão Débito</option>
+                    <option value="Cartão Crédito">Cartão Crédito</option>
+                    <option value="Pix">Pix</option>
+                </select>
+
+                <label for="paid_amount">Valor Pago:</label>
+                <input type="number" id="paid_amount" placeholder="Valor recebido" value="0.00" step="0.01">
+                <div class="checkout-fields">
+                    <label for="discount_amount">Desconto (R$):</label>
+                    <input type="number" id="discount_amount" placeholder="0.00" value="0.00" step="0.01">
+
+                    <label for="additional_amount">Adicional (R$):</label>
+                    <input type="number" id="additional_amount" placeholder="0.00" value="0.00" step="0.01">
+
+                    <label for="sale_notes">Observações:</label>
+                    <textarea id="sale_notes" placeholder="Observações da venda" rows="2"></textarea>
+
+                    <label for="customer_name">Nome do Cliente (opcional):</label>
+                    <input type="text" id="customer_name" placeholder="Nome do cliente">
+
+                    <label for="customer_cpf">CPF do Cliente (opcional):</label>
+                    <input type="text" id="customer_cpf" placeholder="Somente números">
+
+                    <div class="checkout-change">
+                        <strong>Troco:</strong>
+                        <span id="checkoutChangeValue">R$ 0,00</span>
+                    </div>
+                </div>
+                
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="hide('modalCheckout')">Voltar</button>
+                <button class="btn-success" id="modalCheckoutConfirm"><i class="fas fa-check-circle"></i> Confirmar Venda</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE CADASTRO/EDIÇÃO DE PRODUTO -->
+    <div id="modalProduct" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="productModalTitle">Cadastrar Produto</h2>
+                <span class="close" onclick="hide('modalProduct')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="productId"> 
+
+                <label for="productCode">Código (ID)</label>
+                <input type="text" id="productCode" placeholder="Ex: P001" required>
+                
+                <label for="productName">Nome do Produto</label>
+                <input type="text" id="productName" placeholder="Ex: Camisa Amarela" required>
+
+                <label for="productPrice">Preço de Venda (R$)</label>
+                <input type="number" id="productPrice" placeholder="Ex: 99.90" step="0.01" required>
+
+                <label for="productStock">Estoque Atual</label>
+                <input type="number" id="productStock" value="0" min="0" required>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="hide('modalProduct')">Cancelar</button>
+                <button class="btn-primary" id="btnSaveProduct"><i class="fas fa-save"></i> Salvar Produto</button>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="container">
+        <main class="main-content">
+            
+            <div class="header-bar card">
+                <div class="header-info">
+                    <h2><i class="fas fa-box-open"></i> Gestão de Produtos</h2>
+                </div>
+                <div class="header-actions">
+                    <button class="btn-primary" onclick="openProductModal('add')"><i class="fas fa-plus"></i> Novo Item</button>
+                    <button class="btn-secondary" id="btnLogout"><i class="fas fa-sign-out-alt"></i> Sair</button>
+                </div>
+            </div>
+
+            <div class="product-management card">
+                <div class="topbar">
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="searchProduct" placeholder="Buscar por código ou nome..." />
+                    </div>
+                </div>
+
+                <div class="product-table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Cód.</th>
+                                <th>Nome</th>
+                                <th>Preço (R$)</th>
+                                <th>Estoque</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="productListBody">
+                            <!-- Produtos serão injetados aqui via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="sales-report card">
+                <h3><i class="fas fa-chart-line"></i> Resumo do Dia</h3>
+                <div class="kpis">
+                    <div class="kpi-item">
+                        <div class="kpi-label">Vendas Registradas</div>
+                        <div class="kpi-value" id="kpiSalesCount">0</div>
+                    </div>
+                    <div class="kpi-item">
+                        <div class="kpi-label">Faturamento Total</div>
+                        <div class="kpi-value" id="kpiTotalRevenue">R$ 0,00</div>
+                    </div>
+                </div>
+                <button class="btn-secondary full-width mt-4" id="btnGenerateReport"><i class="fas fa-file-pdf"></i> Gerar Relatório Completo</button>
+            </div>
+
+        </main>
+
+        <aside class="cart card">
+            <h2><i class="fas fa-shopping-cart"></i> Carrinho de Compras</h2>
+            <div class="cart-input">
+                <input type="text" id="inputProductCode" placeholder="Cód. do produto" />
+                <input type="number" id="inputQuantity" value="1" min="1" />
+            </div>
+            <div class="cart-controls">
+                <button id="btnAddToCart" class="btn-primary full-width"><i class="fas fa-cart-plus"></i> Adicionar ao Carrinho</button>
+            </div>
+            
+            <div id="cartItems" class="cart-items">
+                <div class="muted" style="text-align:center; padding: 20px;">Carrinho vazio.</div>
+            </div>
+
+            <div class="cart-footer">
+                <div class="cart-total-info">
+                    <strong>Total:</strong>
+                    <strong id="cartTotal">R$ 0,00</strong>
+                </div>
+                <div class="cart-actions">
+                    <button class="btn-secondary" id="btnClearCart"><i class="fas fa-sync-alt"></i> Limpar</button>
+                    <button class="btn-success" id="btnCheckout" title="Finalizar Venda"><i class="fas fa-cash-register"></i> Fechar Venda</button>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <!-- CARREGAMENTO DE BIBLIOTECAS JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+
+    <!-- SEU CÓDIGO JS PRINCIPAL -->
+    <script src="js/site.js"></script> 
+
+</body>
+</html>

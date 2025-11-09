@@ -1,0 +1,79 @@
+name: Build Electron App
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18.x'
+        cache: 'npm'
+    
+    - name: Install dependencies (clean)
+      run: |
+        npm ci --prefer-offline --no-audit --progress=false
+
+    - name: "Ensure build tools (Visual C++ / Windows SDK)"
+      if: runner.os == 'Windows'
+      run: |
+        choco feature enable -n=allowGlobalConfirmation
+        choco install visualstudio2022buildtools --package-parameters "--add Microsoft.VisualStudio.Workload.VCTools --includeRecommended --includeOptional" -y
+        choco install windows-sdk-10.0 -y
+        where cl || echo "cl.exe not found"
+
+    - name: "Diagnostic: Visual Studio / SDK info"
+      if: runner.os == 'Windows'
+      run: |
+        Write-Host '--- PATH ---'
+        Write-Host $Env:PATH
+        Write-Host '--- Node / npm ---'
+        node -v
+        npm -v
+        Write-Host '--- where cl ---'
+        try { Get-Command cl.exe -ErrorAction Stop | Select-Object -Property Source,Version } catch { Write-Host 'cl not found' }
+        Write-Host '--- vswhere (if present) ---'
+        $vswhere = 'C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe'
+        if (Test-Path $vswhere) {
+          & $vswhere -all -products * -format json
+        } else {
+          Write-Host 'vswhere not found'
+        }
+        Write-Host '--- Windows Kits registry keys ---'
+        reg query "HKLM\SOFTWARE\Microsoft\Windows Kits\Installed Roots" || Write-Host 'no registry keys for Windows Kits'
+        Write-Host '--- list installed SDK folders ---'
+        if (Test-Path 'C:\Program Files (Windows Kits)\10\Include') {
+          Get-ChildItem 'C:\Program Files (Windows Kits)\10\Include' -Force | Select-Object -First 10
+        } else {
+          Write-Host 'no SDK include folder'
+        }
+
+
+    - name: "Install app deps (prebuilt native binaries)"
+      env:
+        DEBUG: electron-builder
+      run: |
+        echo 'Running electron-builder install-app-deps (DEBUG=electron-builder)'
+        npx electron-builder install-app-deps --arch x64
+
+    - name: "Build Electron app"
+      run: |
+        npx electron-builder --win --x64 --publish never
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: "Upload artifacts"
+      uses: actions/upload-artifact@v4
+      with:
+        name: lk-imports-windows
+        path: dist/**
