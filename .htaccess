@@ -1,0 +1,38 @@
+# Sistema PDV - InfinityFree
+# Configuração de reescrita de URLs
+
+RewriteEngine On
+
+# Redireciona todas as requisições da API para api/index.php
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^api/(.*)$ api/index.php [L,QSA]
+
+# Página inicial padrão (login)
+DirectoryIndex ilogin.html index.html
+
+# Proteção de arquivos sensíveis
+<FilesMatch "^(schema\.sql|update_schema\.sql)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Habilita compressão (se disponível)
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css text/javascript application/javascript application/json
+</IfModule>
+
+# Cache de arquivos estáticos
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType text/css "access plus 1 week"
+    ExpiresByType application/javascript "access plus 1 week"
+    ExpiresByType image/x-icon "access plus 1 month"
+</IfModule>
+
+# Proteção contra hotlinking de imagens
+<IfModule mod_rewrite.c>
+    RewriteCond %{HTTP_REFERER} !^$
+    RewriteCond %{HTTP_REFERER} !^https?://(www\.)?seusite\. [NC]
+    RewriteRule \.(jpg|jpeg|png|gif|ico)$ - [F,L]
+</IfModule>

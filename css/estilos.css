@@ -180,6 +180,16 @@ body {
     align-items: center;
     padding: 15px 20px;
 }
+.header-info {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+.user-info {
+    font-size: 0.85rem;
+    color: #666;
+    font-weight: normal;
+}
 .header-actions {
     display: flex;
     gap: 10px;
@@ -356,6 +366,41 @@ table tr:nth-child(even) {
     font-weight: bold;
     color: var(--color-primary);
     margin-top: 5px;
+}
+.kpi-profit {
+    color: var(--color-success);
+}
+
+.report-filters {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-top: 15px;
+    flex-wrap: wrap;
+}
+.report-filters label {
+    font-size: 0.9rem;
+    font-weight: bold;
+}
+.report-filters input[type="date"] {
+    padding: 6px 10px;
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    font-size: 0.9rem;
+}
+
+.stock-low {
+    color: var(--color-danger);
+    font-weight: bold;
+}
+.stock-critical {
+    color: #ff0000;
+    font-weight: bold;
+    animation: blink 1s infinite;
+}
+@keyframes blink {
+    0%, 50%, 100% { opacity: 1; }
+    25%, 75% { opacity: 0.5; }
 }
 
 

@@ -1,0 +1,53 @@
+-- sql/schema.sql (MySQL)
+CREATE TABLE IF NOT EXISTS users (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(100) NOT NULL,
+  email VARCHAR(120) NOT NULL UNIQUE,
+  password_hash VARCHAR(255) NOT NULL,
+  role ENUM('admin', 'gerente', 'funcionario') DEFAULT 'admin'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS stores (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  store_name VARCHAR(200) NOT NULL,
+  owner_name VARCHAR(200),
+  store_phone VARCHAR(50),
+  cnpj VARCHAR(20),
+  address TEXT,
+  CONSTRAINT fk_user_store FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS products (
+  id VARCHAR(64) PRIMARY KEY,
+  user_id INT NOT NULL,
+  name VARCHAR(200) NOT NULL,
+  cost DECIMAL(10,2) DEFAULT 0,
+  price DECIMAL(10,2) NOT NULL,
+  stock INT NOT NULL DEFAULT 0,
+  CONSTRAINT fk_user_product FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS sales (
+  id VARCHAR(32) PRIMARY KEY,
+  user_id INT NOT NULL,
+  sale_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+  total DECIMAL(10,2) NOT NULL,
+  payment_method VARCHAR(50),
+  discount DECIMAL(10,2) DEFAULT 0,
+  additional DECIMAL(10,2) DEFAULT 0,
+  notes TEXT,
+  customer_name VARCHAR(200),
+  customer_cpf VARCHAR(20),
+  CONSTRAINT fk_user_sale FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS sale_items (
+  sale_id VARCHAR(32) NOT NULL,
+  product_id VARCHAR(64) NOT NULL,
+  quantity INT NOT NULL,
+  price_unit DECIMAL(10,2) NOT NULL,
+  PRIMARY KEY (sale_id, product_id),
+  CONSTRAINT fk_sale FOREIGN KEY (sale_id) REFERENCES sales(id) ON DELETE CASCADE,
+  CONSTRAINT fk_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

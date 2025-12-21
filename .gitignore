@@ -1,9 +1,27 @@
-node_modules/
-dist/
-*.log
+# Arquivo de configuração com credenciais do banco
+config/db.php
+
+# Arquivos temporários do Windows
+Thumbs.db
+desktop.ini
+
+# Arquivos do macOS
 .DS_Store
-.env
-build/
-dist/
+
+# Logs e arquivos temporários
 *.log
-database.sqlite
+*.tmp
+
+# Arquivos do editor
+.vscode/
+.idea/
+*.sublime-*
+
+# Dependências (se usar no futuro)
+node_modules/
+vendor/
+
+# Arquivos de backup
+*.bak
+*.backup
+*~

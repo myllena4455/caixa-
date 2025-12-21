@@ -117,6 +117,8 @@
                 });
 
                 const result = await response.json();
+                
+                console.log('Resposta do servidor:', result);
 
                 if (response.ok) {
                     thematicAlert('Sucesso!', result.message, 'success');
@@ -136,6 +138,29 @@
                         } catch (e) { console.warn('Não foi possível salvar dados da loja localmente', e); }
                         // Depois do cadastro, permanece na tela de login (usuário pode fazer login)
                     } else {
+                        // Login bem-sucedido - salva dados do usuário e loja
+                        console.log('Salvando dados do usuário:', result.user);
+                        console.log('Salvando dados da loja:', result.store);
+                        
+                        try {
+                            if (result.user) {
+                                localStorage.setItem('user_id', result.user.id);
+                                localStorage.setItem('user_name', result.user.name);
+                                localStorage.setItem('user_email', result.user.email);
+                                localStorage.setItem('user_role', result.user.role);
+                                console.log('Dados salvos - user_id:', result.user.id);
+                            } else {
+                                console.error('result.user está undefined!');
+                            }
+                            // Salva dados da loja retornados do servidor
+                            if (result.store) {
+                                if (result.store.store_name) localStorage.setItem('store_name', result.store.store_name);
+                                if (result.store.owner_name) localStorage.setItem('store_owner', result.store.owner_name);
+                                if (result.store.store_phone) localStorage.setItem('store_phone', result.store.store_phone);
+                                if (result.store.cnpj) localStorage.setItem('store_cnpj', result.store.cnpj);
+                                if (result.store.address) localStorage.setItem('store_address', result.store.address);
+                            }
+                        } catch (e) { console.warn('Erro ao salvar dados localmente', e); }
                         // Redireciona para o PDV principal após o login
                         window.location.href = 'index.html'; 
                     }
